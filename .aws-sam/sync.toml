@@ -5,5 +5,5 @@ dependency_layer = false
 latest_infra_sync_time = "2023-06-08T11:40:40.686027"
 
 [resource_sync_states."ZipFunctionSyncFlow:CostNotifyFunction"]
-hash = "56eadc4ed77ba9c2b1e5850a2a0b6b09158197907c49aa03ded28d9d91466bfb"
-sync_time = "2023-06-08T11:32:52.764071"
+hash = "ef5f29b598838751b5d70585a03bb74e491e8b9df7127b7e189d8d4de9f2560a"
+sync_time = "2023-06-08T12:15:44.298413"
