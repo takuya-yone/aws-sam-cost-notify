@@ -2,8 +2,9 @@ import json
 import boto3
 import datetime
 import os
-from urllib.request import Request, urlopen, URLError, HTTPError
+import pandas as pd
 
+from urllib.request import Request, urlopen, URLError, HTTPError
 from aws_lambda_powertools import Logger
 from aws_lambda_powertools import Tracer
 
@@ -48,13 +49,22 @@ def get_cost(ce_client, start, end) -> list:
 
 
 def generate_slack_message(billing_sorted: list) -> str:
+    df = pd.DataFrame({
+    '名前' :['田中', '山田', '高橋'],
+    '役割' : ['営業部長', '広報部', '技術責任者'],
+    '身長' : [178, 173, 169]
+    })
+    print(df)
+    # print(df.dtypes)
+
+
     message = {
         "blocks": [
             {
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": "This is a mrkdwn section block :ghost: *this is bold*, and ~this is crossed out~, and <https://google.com|this is a link>"
+                    "text": df.to_string()
                 }
             }
         ],
