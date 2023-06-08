@@ -1,48 +1,43 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-
-
 Globals:
   Function:
     Timeout: 30
-
     Tracing: Active
   Api:
     TracingEnabled: true
 Resources:
-
   CostNotifyLambdaRole:
     Type: AWS::IAM::Role
     Properties:
       Path: /
-      RoleName: 'CostNotifyLambdaRole'
+      RoleName: CostNotifyLambdaRole
       AssumeRolePolicyDocument:
         Statement:
-          - Effect: "Allow"
+          - Effect: Allow
             Principal:
               Service:
-                - "lambda.amazonaws.com"
+                - lambda.amazonaws.com
             Action:
-              - "sts:AssumeRole"
+              - sts:AssumeRole
       MaxSessionDuration: 3600
       ManagedPolicyArns:
-        - 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
-        - 'arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess'
-        - 'arn:aws:iam::aws:policy/service-role/AWSLambdaRole'
-        - 'arn:aws:iam::aws:policy/service-role/AWSLambdaSQSQueueExecutionRole'
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaSQSQueueExecutionRole
       Policies:
-        - PolicyName: "CostNotifyLambdaCePolicy"
+        - PolicyName: CostNotifyLambdaCePolicy
           PolicyDocument:
-            Version: "2012-10-17"
+            Version: '2012-10-17'
             Statement:
-              - Effect: "Allow"
+              - Effect: Allow
                 Action:
-                  - "ce:GetCostAndUsage"
-                Resource: 
-                  - "*"
-
+                  - ce:GetCostAndUsage
+                Resource:
+                  - '*'
   CostNotifyFunction:
-    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Type: AWS::Serverless::Function
     Properties:
       Role: !GetAtt CostNotifyLambdaRole.Arn
       CodeUri: cost_notify/
@@ -50,12 +45,13 @@ Resources:
       Runtime: python3.10
       Layers:
         - !Sub arn:aws:lambda:${AWS::Region}:017000801446:layer:AWSLambdaPowertoolsPythonV2-Arm64:34
+        - !Sub arn:aws:lambda:${AWS::Region}:336392948345:layer:AWSSDKPandas-Python310-Arm64:2
       Architectures:
-      - arm64
+        - arm64
       Environment:
         Variables:
           SLACK_WEBHOOK_URL: '{{resolve:secretsmanager:aws-sam-cost-notify-secret:SecretString:url}}'
-
+          TZ: Asia/Tokyo
   CostNotifyFunctionLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
