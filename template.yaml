@@ -52,6 +52,9 @@ Resources:
         - !Sub arn:aws:lambda:${AWS::Region}:017000801446:layer:AWSLambdaPowertoolsPythonV2-Arm64:34
       Architectures:
       - arm64
+      Environment:
+        Variables:
+          SLACK_WEBHOOK_URL: '{{resolve:secretsmanager:aws-sam-cost-notify-secret:SecretString:url}}'
 
   CostNotifyFunctionLogGroup:
     Type: AWS::Logs::LogGroup

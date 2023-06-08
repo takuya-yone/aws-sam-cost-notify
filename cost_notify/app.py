@@ -1,12 +1,16 @@
 import json
 import boto3
 import datetime
+import os
+from urllib.request import Request, urlopen, URLError, HTTPError
 
 from aws_lambda_powertools import Logger
 from aws_lambda_powertools import Tracer
 
 tracer = Tracer()
 logger = Logger()
+
+SLACK_WEBHOOK_URL = os.environ['SLACK_WEBHOOK_URL']
 
 
 def get_cost(ce_client, start, end) -> list:
@@ -43,14 +47,47 @@ def get_cost(ce_client, start, end) -> list:
     return billings_sorted[:10]
 
 
+def generate_slack_message(billing_sorted: list) -> str:
+    message = {
+        "blocks": [
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "This is a mrkdwn section block :ghost: *this is bold*, and ~this is crossed out~, and <https://google.com|this is a link>"
+                }
+            }
+        ],
+
+    }
+    return message
+
+
+def send_slack_message(message: str, webhookurl: str) -> None:
+    slack_message = message
+    req = Request(webhookurl, data=json.dumps(slack_message).encode("utf-8"),
+                  headers={'content-type': 'application/json'})
+    print('------ send Slack message! ------')
+    try:
+        response = urlopen(req)
+        print("Request success : ", response.read())
+    except HTTPError as e:
+        print("Request failed : ", e.code, e.reason)
+    except URLError as e:
+        print("Server connection failed: ", e.reason, e.reason)
+
+
 @tracer.capture_lambda_handler
 @logger.inject_lambda_context(log_event=False)
-def lambda_handler(event, context):
+def lambda_handler(event, context) -> None:
 
     today = datetime.date.today()
     start = today.replace(day=1).strftime('%Y-%m-%d')
     end = today.strftime('%Y-%m-%d')
     ce_client = boto3.client('ce', region_name='us-east-1')
     billings_sorted = get_cost(ce_client, start, end)
-    return billings_sorted
+    slack_message = generate_slack_message(billings_sorted)
+    send_slack_message(slack_message, SLACK_WEBHOOK_URL)
+    return None
+    # return billings_sorted
     # return response['ResultsByTime']
