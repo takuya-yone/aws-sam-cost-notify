@@ -57,3 +57,38 @@ Resources:
     Properties:
       LogGroupName: !Sub /aws/lambda/${CostNotifyFunction}
       RetentionInDays: 365
+
+  LambdaScheduler:
+    Type: AWS::Scheduler::Schedule
+    Properties:
+      ScheduleExpression: rate(24 hours)
+      FlexibleTimeWindow:
+        Mode: 'OFF'
+      Target:
+        Arn: !GetAtt CostNotifyFunction.Arn
+        RoleArn: !GetAtt LambdaSchedulerToCostNotifyFunctionRole.Arn
+      ScheduleExpressionTimezone: Asia/Tokyo
+  LambdaSchedulerToCostNotifyFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: LambdaSchedulerToCostNotifyFunctionRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          Effect: Allow
+          Principal:
+            Service: !Sub scheduler.${AWS::URLSuffix}
+          Action: sts:AssumeRole
+          Condition:
+            ArnLike:
+              aws:SourceArn: !Sub
+                - arn:${AWS::Partition}:scheduler:${AWS::Region}:${AWS::AccountId}:schedule/*/${AWS::StackName}-${ResourceId}-*
+                - ResourceId: LambdaScheduler
+      Policies:
+        - PolicyName: StartExecutionPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource: !GetAtt CostNotifyFunction.Arn
