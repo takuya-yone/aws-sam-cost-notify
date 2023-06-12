@@ -3,6 +3,7 @@ import boto3
 import datetime
 import os
 import pandas as pd
+from itertools import groupby
 
 from zoneinfo import ZoneInfo
 from tabulate import tabulate
@@ -16,9 +17,17 @@ logger = Logger()
 SLACK_WEBHOOK_URL = os.environ['SLACK_WEBHOOK_URL']
 tokyo = ZoneInfo("Asia/Tokyo")
 
+# def get_account_list(response) -> list[str]:
+#     account_list = []
+#     for item in response['ResultsByTime'][0]['Groups']:
+#         account_list.append(item['Keys'][1])
 
-def get_cost(ce_client, start, end) -> list:
+#     account_list=list(set(account_list))
+#     return(account_list)
 
+
+def get_cost(ce_client, start, end) -> dict:
+    get_cost_res = {}
     billings_raw = []
 
     response = ce_client.get_cost_and_usage(
@@ -41,20 +50,39 @@ def get_cost(ce_client, start, end) -> list:
             }
         ]
     )
-    # logger.info(response)
-    logger.info(response)
+
     for item in response['ResultsByTime'][0]['Groups']:
-        billings_raw.append({'service_name': item['Keys'][0], 'billing': round(
-            float(item['Metrics']['UnblendedCost']['Amount']), 2)})
-    billings_sorted = sorted(
-        billings_raw,
-        key=lambda x: x['billing'],
-        reverse=True)
-    logger.info(billings_sorted[:10])
-    return billings_sorted[:10]
+        billings_raw.append(
+            {
+                'account': item['Keys'][1],
+                'service_name': item['Keys'][0],
+                'billing': round(
+                    float(
+                        item['Metrics']['UnblendedCost']['Amount']),
+                    2)})
+
+    billings_raw.sort(key=lambda m: m['account'])
+
+    for key, group in groupby(billings_raw, key=lambda m: m['account']):
+        print("key:", key)
+        tmp_billing_list = []
+        for billing in group:
+            tmp_billing_list.append(billing)
+
+        billings_sorted = sorted(
+            tmp_billing_list,
+            key=lambda x: x['billing'],
+            reverse=True)
+        get_cost_res[str(key)] = billings_sorted[:10]
+
+    return (get_cost_res)
 
 
-def generate_slack_message(billing_sorted: list, start: str, end: str) -> str:
+def generate_slack_message(
+        account: str,
+        billing_sorted: list,
+        start: str,
+        end: str) -> str:
     service_list = [x['service_name'] for x in billing_sorted]
     billing_list = [x['billing'] for x in billing_sorted]
     df = pd.DataFrame({
@@ -70,8 +98,8 @@ def generate_slack_message(billing_sorted: list, start: str, end: str) -> str:
         "blocks": [
             {
                 "type": "header", "text": {
-                    "type": "plain_text", "text": "{}〜{}".format(
-                        start, end)}}, {
+                    "type": "plain_text", "text": "{}〜{} Account({})".format(
+                        start, end, account)}}, {
                 "type": "section", "text": {
                     "type": "mrkdwn", "text": "```\n{}\n```".format(
                         tabulate(
@@ -96,16 +124,16 @@ def send_slack_message(message: str, webhookurl: str) -> None:
 @tracer.capture_lambda_handler
 @logger.inject_lambda_context(log_event=False)
 def lambda_handler(event, context) -> None:
-
     today = datetime.datetime.now(tokyo)
     today_1d = today - datetime.timedelta(days=1)
     today_2d = today - datetime.timedelta(days=2)
     start = today_2d.strftime('%Y-%m-%d')
     end = today_1d.strftime('%Y-%m-%d')
     ce_client = boto3.client('ce', region_name='us-east-1')
-    billings_sorted = get_cost(ce_client, start, end)
-    slack_message = generate_slack_message(billings_sorted, start, end)
-    send_slack_message(slack_message, SLACK_WEBHOOK_URL)
+    get_cost_res = get_cost(ce_client, start, end)
+    for account, billing_list in get_cost_res.items():
+        slack_message = generate_slack_message(
+            account, billing_list, start, end)
+        logger.info(slack_message)
+        send_slack_message(slack_message, SLACK_WEBHOOK_URL)
     return None
-    # return billings_sorted
-    # return response['ResultsByTime']

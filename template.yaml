@@ -51,7 +51,6 @@ Resources:
       Environment:
         Variables:
           SLACK_WEBHOOK_URL: '{{resolve:secretsmanager:aws-sam-cost-notify-secret:SecretString:url}}'
-          TZ: Asia/Tokyo
   CostNotifyFunctionLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
