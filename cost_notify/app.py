@@ -14,7 +14,7 @@ tracer = Tracer()
 logger = Logger()
 
 SLACK_WEBHOOK_URL = os.environ['SLACK_WEBHOOK_URL']
-tokyo = ZoneInfo("Asia/Tokyo") 
+tokyo = ZoneInfo("Asia/Tokyo")
 
 
 def get_cost(ce_client, start, end) -> list:
@@ -34,10 +34,15 @@ def get_cost(ce_client, start, end) -> list:
             {
                 'Type': 'DIMENSION',
                 'Key': 'SERVICE'
+            },
+            {
+                'Type': 'DIMENSION',
+                'Key': 'LINKED_ACCOUNT'
             }
         ]
     )
     # logger.info(response)
+    logger.info(response)
     for item in response['ResultsByTime'][0]['Groups']:
         billings_raw.append({'service_name': item['Keys'][0], 'billing': round(
             float(item['Metrics']['UnblendedCost']['Amount']), 2)})
