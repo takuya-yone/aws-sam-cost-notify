@@ -26,6 +26,13 @@ tokyo = ZoneInfo("Asia/Tokyo")
 #     return(account_list)
 
 
+def get_account_name(list_account_res, accountid) -> str:
+    for account in list_account_res['Accounts']:
+        if accountid == account['Id']:
+            return account.get('Name', "NoName")
+    return "NoMatch"
+
+
 def get_cost(ce_client, start, end) -> dict:
     get_cost_res = {}
     billings_raw = []
@@ -80,6 +87,7 @@ def get_cost(ce_client, start, end) -> dict:
 
 def generate_slack_message(
         account: str,
+        account_name: str,
         billing_sorted: list,
         start: str,
         end: str) -> str:
@@ -91,15 +99,15 @@ def generate_slack_message(
     })
 
     dfstr = df.to_string(index_names=False)
-    print(dfstr)
+    # print(dfstr)
     # print(df.dtypes)
 
     message = {
         "blocks": [
             {
                 "type": "header", "text": {
-                    "type": "plain_text", "text": "{}〜{} Account({})".format(
-                        start, end, account)}}, {
+                    "type": "plain_text", "text": "{}〜{} {} ({})".format(
+                        start, end, account_name, account)}}, {
                 "type": "section", "text": {
                     "type": "mrkdwn", "text": "```\n{}\n```".format(
                         tabulate(
@@ -131,9 +139,13 @@ def lambda_handler(event, context) -> None:
     end = today_1d.strftime('%Y-%m-%d')
     ce_client = boto3.client('ce', region_name='us-east-1')
     get_cost_res = get_cost(ce_client, start, end)
+    org_client = boto3.client('organizations', region_name='us-east-1')
+    list_account_res = org_client.list_accounts()
+    logger.info(list_account_res)
     for account, billing_list in get_cost_res.items():
+        account_name = get_account_name(list_account_res, account)
         slack_message = generate_slack_message(
-            account, billing_list, start, end)
+            account, account_name, billing_list, start, end)
         logger.info(slack_message)
         send_slack_message(slack_message, SLACK_WEBHOOK_URL)
     return None

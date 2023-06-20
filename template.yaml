@@ -26,6 +26,7 @@ Resources:
         - arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess
         - arn:aws:iam::aws:policy/service-role/AWSLambdaRole
         - arn:aws:iam::aws:policy/service-role/AWSLambdaSQSQueueExecutionRole
+        - arn:aws:iam::aws:policy/AWSOrganizationsReadOnlyAccess
       Policies:
         - PolicyName: CostNotifyLambdaCePolicy
           PolicyDocument:
