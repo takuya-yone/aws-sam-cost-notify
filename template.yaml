@@ -61,13 +61,14 @@ Resources:
   LambdaScheduler:
     Type: AWS::Scheduler::Schedule
     Properties:
-      ScheduleExpression: rate(24 hours)
+      ScheduleExpression: cron(0 0 * * ? *)
       FlexibleTimeWindow:
         Mode: 'OFF'
       Target:
         Arn: !GetAtt CostNotifyFunction.Arn
         RoleArn: !GetAtt LambdaSchedulerToCostNotifyFunctionRole.Arn
       ScheduleExpressionTimezone: Asia/Tokyo
+
   LambdaSchedulerToCostNotifyFunctionRole:
     Type: AWS::IAM::Role
     Properties:
