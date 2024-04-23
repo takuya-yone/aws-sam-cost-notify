@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Globals:
   Function:
@@ -30,28 +30,28 @@ Resources:
       Policies:
         - PolicyName: CostNotifyLambdaCePolicy
           PolicyDocument:
-            Version: '2012-10-17'
+            Version: "2012-10-17"
             Statement:
               - Effect: Allow
                 Action:
                   - ce:GetCostAndUsage
                 Resource:
-                  - '*'
+                  - "*"
   CostNotifyFunction:
     Type: AWS::Serverless::Function
     Properties:
       Role: !GetAtt CostNotifyLambdaRole.Arn
       CodeUri: cost_notify/
       Handler: app.lambda_handler
-      Runtime: python3.10
+      Runtime: python3.12
       Layers:
-        - !Sub arn:aws:lambda:${AWS::Region}:017000801446:layer:AWSLambdaPowertoolsPythonV2-Arm64:36
-        - !Sub arn:aws:lambda:${AWS::Region}:336392948345:layer:AWSSDKPandas-Python310-Arm64:2
+        - !Sub arn:aws:lambda:${AWS::Region}:017000801446:layer:AWSLambdaPowertoolsPythonV2-Arm64:69
+        - !Sub arn:aws:lambda:${AWS::Region}:336392948345:layer:AWSSDKPandas-Python310-Arm64:8
       Architectures:
         - arm64
       Environment:
         Variables:
-          SLACK_WEBHOOK_URL: '{{resolve:secretsmanager:aws-sam-cost-notify-secret:SecretString:url}}'
+          SLACK_WEBHOOK_URL: "{{resolve:secretsmanager:aws-sam-cost-notify-secret:SecretString:url}}"
   CostNotifyFunctionLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -63,7 +63,7 @@ Resources:
     Properties:
       ScheduleExpression: cron(0 0 * * ? *)
       FlexibleTimeWindow:
-        Mode: 'OFF'
+        Mode: "OFF"
       Target:
         Arn: !GetAtt CostNotifyFunction.Arn
         RoleArn: !GetAtt LambdaSchedulerToCostNotifyFunctionRole.Arn
@@ -74,7 +74,7 @@ Resources:
     Properties:
       RoleName: LambdaSchedulerToCostNotifyFunctionRole
       AssumeRolePolicyDocument:
-        Version: '2012-10-17'
+        Version: "2012-10-17"
         Statement:
           Effect: Allow
           Principal:
@@ -88,7 +88,7 @@ Resources:
       Policies:
         - PolicyName: StartExecutionPolicy
           PolicyDocument:
-            Version: '2012-10-17'
+            Version: "2012-10-17"
             Statement:
               - Effect: Allow
                 Action: lambda:InvokeFunction
